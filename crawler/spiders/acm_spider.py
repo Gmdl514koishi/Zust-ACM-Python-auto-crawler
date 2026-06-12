@@ -1,5 +1,3 @@
-from bs4 import BeautifulSoup
-
 def fetch_webpage_source(html: str) -> str:
     """
     返回原始网页源代码（不进行解析）
