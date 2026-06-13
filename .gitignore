@@ -17,3 +17,7 @@ data/
 
 # tests
 tests/
+
+# 保护凭据
+.env
+config/.env
