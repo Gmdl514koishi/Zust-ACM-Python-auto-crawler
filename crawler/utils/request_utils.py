@@ -1,6 +1,6 @@
 import requests
 
-headers = {
+headers: dict[str, str] = {
     "User-Agent": "ZUST-ACM-Crawler/1.0 (+https://github.com/Gmdl514koishi/Zust-ACM-Python-auto-crawler)",
     "From": "1251004020"
 }
@@ -15,8 +15,9 @@ def fetch_webpage(url: str) -> str:
     try:
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
-        html = response.text
+        html: str = response.text
         return html
     except requests.exceptions.RequestException as err:
-        print(f"请求失败: {err}")
+        error_msg: str = f"请求 {url} 失败: {err}"
+        print(error_msg)
         raise err
