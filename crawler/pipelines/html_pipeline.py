@@ -1,4 +1,5 @@
 import os
+import re
 
 def save_html_to_html(html_content: str, filename: str = "webpage.html") -> None:
     """
@@ -13,6 +14,13 @@ def save_html_to_html(html_content: str, filename: str = "webpage.html") -> None
             error_msg: str = "错误: HTML 内容为空或格式不正确"
             print(error_msg)
             return
+        
+        # 清理文件名：移除或替换非法字符
+        if filename.startswith('http://') or filename.startswith('https://'):
+            clean_name = re.sub(r'^https?://', '', filename)
+            clean_name = clean_name.replace('/', '_')
+            filename = f"{clean_name}.html"
+        
         data_dir: str = "./data"
         os.makedirs(data_dir, exist_ok=True)
         file_path: str = os.path.join(data_dir, filename)
