@@ -1,7 +1,7 @@
 from crawler.utils.browser_utils import click_element, fill_element
 from crawler.utils.config_utils import get_email_from_env
 from playwright.sync_api import sync_playwright, Page, Browser
-from crawler.pipelines.cookie_pipeline import load_cookies_from_json, save_cookies_to_json 
+from crawler.pipelines.cookie_pipeline import save_cookies_to_json 
 
 # 选择器常量
 SELECTORS = {
