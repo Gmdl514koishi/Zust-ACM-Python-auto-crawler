@@ -1,0 +1,7 @@
+{
+  "login_button": "button[data-slot=\"dropdown-menu-trigger\"][data-sidebar=\"menu-button\"]",
+  "login_now_button": "a:has-text(\"立即登录\")",
+  "email_input": "input[name=\"p_email\"], input[id=\"sign_up_sign_in_credentials_p_email\"]",
+  "continue_button": "button[type=\"submit\"][data-kinde-button=\"true\"]",
+  "verification_code_input": "input[name=\"p_confirmation_code\"], input[id=\"otp_code_p_confirmation_code\"]"
+}

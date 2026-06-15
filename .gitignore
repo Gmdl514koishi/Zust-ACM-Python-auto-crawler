@@ -22,3 +22,7 @@ tests/
 .env
 config/.env
 config/cookies.json
+
+# 日志
+logs/
+log/

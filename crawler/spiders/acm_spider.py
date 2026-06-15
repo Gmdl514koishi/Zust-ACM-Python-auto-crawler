@@ -1,6 +1,24 @@
 from bs4 import BeautifulSoup
 from crawler.pipelines.html_pipeline import save_html_to_html
+from crawler.pipelines.cookie_pipeline import (
+    save_cookies_to_json, 
+    load_cookies_from_json,
+    validate_cookies,
+    clean_expired_cookies
+)
+from crawler.spiders.intellijudge_spider import fill_email, fill_verification_code
+from crawler.utils.cookie_utils import playwright_cookies_to_dict
+from crawler.utils.intellijudge_utils import click_element
+from crawler.utils.logging_utils import setup_logging
 from crawler.utils.request_utils import fetch_webpage, check_webpage_source
+from crawler.utils.selector_utils import load_selectors
+from playwright.sync_api import sync_playwright, Page, Browser
+
+# 配置日志
+logger = setup_logging()
+
+# 选择器常量
+SELECTORS = load_selectors()
 
 def fetch_save_webpage(url: str) -> None:
     """
@@ -9,12 +27,16 @@ def fetch_save_webpage(url: str) -> None:
     :param url: 目标网址
     :return: None
     """
+    # 加载并验证 Cookie
+    cookies = load_cookies_from_json()
+    if cookies:
+        validate_cookies(cookies)
+        clean_expired_cookies()
 
-    html: str = fetch_webpage(url)
+    html: str = fetch_webpage(url, cookies=cookies)
     webpage_source: str = check_webpage_source(html)
     save_html_to_html(webpage_source, filename=url)
-    success_msg: str = f"网页 {url} 源代码爬取完成!"
-    print(success_msg)
+    logger.info(f"网页 {url} 源代码爬取完成!")
 
 
 def find_login_button(html: str) -> dict:
@@ -47,3 +69,87 @@ def find_login_button(html: str) -> dict:
     button_info['is_log_in'] = False if is_logged_out else True
     button_info['message'] = '未登录' if is_logged_out else '已登录'
     return button_info
+
+def login(url: str) -> tuple[Page | None, Browser | None]:
+    """
+    直接模式：直接启动可视化浏览器，完成点击和重定向后让用户登录
+    
+    :param url: 目标网址
+    :return: page, browser 对象（用于后续操作）
+    """
+    logger.info("正在启动浏览器...")
+    
+    with sync_playwright() as p:
+        # 直接启动可视化浏览器
+        browser = p.chromium.launch(
+            headless=False,
+            args=['--start-maximized']
+        )
+        
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.3.1 Safari/605.1.15"
+        )
+        
+        page = context.new_page()
+        
+        try:
+            page.goto(url)
+            logger.info(f"已打开: {url}")
+
+            # 点击登录按钮
+            if not click_element(page, SELECTORS['login_button'], timeout=10000):
+                logger.error("未找到登录按钮")
+                return None, None
+
+            # 点击"立即登录"按钮
+            if not click_element(page, SELECTORS['login_now_button'], timeout=5000):
+                logger.error("未找到'立即登录'按钮")
+                return None, None
+            
+            # 等待重定向
+            page.wait_for_load_state('networkidle')
+            login_url = page.url
+            logger.info(f"重定向完成: {login_url}")
+            
+            if not fill_email(page):
+                logger.error("填写邮箱失败")
+                return None, None
+
+            if not click_element(page, SELECTORS['email_input'], timeout=5000):
+                logger.error("未找到邮箱输入框")
+                return None, None
+            
+            if not fill_verification_code(page):
+                logger.error("填写验证码失败")
+                return None, None
+
+            # 等待页面重定向回主页面
+            root_url: str = url 
+            try:
+                logger.info(f"等待页面重定向到: {root_url}")
+                page.wait_for_url(root_url, timeout=30000)
+                logger.info(f"已成功重定向到: {root_url}")
+            except Exception as err:
+                logger.warning(f"等待重定向超时，当前 URL: {page.url}, 错误: {str(err)}")
+                # 如果超时，仍尝试保存 cookie
+                logger.info("继续尝试保存 Cookie")
+            
+            # 等待页面加载完成
+            page.wait_for_load_state('networkidle')
+            
+            # 获取并保存 Cookie
+            playwright_cookies = context.cookies()
+            cookies = playwright_cookies_to_dict(playwright_cookies)
+            
+            # 验证并保存 Cookie
+            if validate_cookies(cookies):
+                save_cookies_to_json(cookies)
+                logger.info("已保存 Cookie")
+            else:
+                logger.warning("Cookie 验证失败，未保存")
+
+            return page, browser
+            
+        except Exception as err:
+            logger.error(f"登录过程出错: {str(err)}")
+            return None, None
