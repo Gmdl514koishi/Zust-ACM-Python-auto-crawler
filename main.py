@@ -6,7 +6,7 @@ def main():
         'root': 'https://acm.zust.edu.cn',
     }
 
-    # fetch_save_webpage(url['root'])
+    fetch_save_webpage(url['root'])
     button_info =  find_login_button(html_to_str('data/acm.zust.edu.cn.html'))
     if button_info['found'] == False:
         print("未找到登录按钮")
