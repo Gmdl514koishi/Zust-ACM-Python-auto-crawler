@@ -21,3 +21,4 @@ tests/
 # 保护凭据
 .env
 config/.env
+config/cookies.json
