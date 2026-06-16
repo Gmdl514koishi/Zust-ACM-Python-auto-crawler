@@ -4,9 +4,8 @@ from crawler.pipelines.cookie_pipeline import load_cookies_from_json, validate_c
 from crawler.spiders.intellijudge_spider import do_intellijudge_login
 from crawler.spiders.webvpn_spider import do_webvpn_login
 from crawler.utils.browser_utils import click_element
-from crawler.utils.cookie_utils import wait_for_required_cookies
+from crawler.utils.cookie_utils import wait_for_required_cookies, check_cookies_valid
 from crawler.utils.logging_utils import setup_logging
-from crawler.utils.request_utils import fetch_webpage, check_webpage_source
 from crawler.utils.selector_utils import load_selectors
 from playwright.sync_api import sync_playwright, Page, Browser
 
@@ -14,26 +13,7 @@ from playwright.sync_api import sync_playwright, Page, Browser
 logger = setup_logging()
 
 # 选择器常量
-SELECTORS = load_selectors(form_type='ACM_login_inputs')
-
-def fetch_save_webpage(url: str) -> None:
-    """
-    爬取并保存网页源代码
-    
-    :param url: 目标网址
-    :return: None
-    """
-    # 加载并验证 Cookie
-    cookies = load_cookies_from_json()
-    if cookies:
-        validate_cookies(cookies)
-        clean_expired_cookies()
-
-    html: str = fetch_webpage(url, cookies=cookies)
-    webpage_source: str = check_webpage_source(html)
-    save_html_to_html(webpage_source, filename=url)
-    logger.info(f"网页 {url} 源代码爬取完成!")
-
+SELECTORS = load_selectors(form_type='ACM')
 
 def find_login_button(html: str) -> dict:
     """
@@ -66,7 +46,7 @@ def find_login_button(html: str) -> dict:
     button_info['message'] = '未登录' if is_logged_out else '已登录'
     return button_info
 
-def login(url: dict[str, str]) -> tuple[Page | None, Browser | None]:
+def login(url: dict[str, str], headless: bool = True) -> tuple[Page | None, Browser | None]:
     """
     完整登录流程：先进行 WebVPN 登录，再进行 IntelliJudge 登录
     
@@ -75,7 +55,7 @@ def login(url: dict[str, str]) -> tuple[Page | None, Browser | None]:
     """
     with sync_playwright() as p:
         browser = p.chromium.launch(
-            headless=False,
+            headless=headless,
             args=['--start-maximized']
         )
 
@@ -86,28 +66,44 @@ def login(url: dict[str, str]) -> tuple[Page | None, Browser | None]:
         page = context.new_page()
 
         try:
-            # Step 1: WebVPN 登录
-            logger.info(f"正在打开 WebVPN 登录页面: {url['webvpn_username']}")
-            page.goto(url['webvpn_username'])
+            # Step 1: 检查 webvpn_username cookie 是否有效
+            valid_cookies = check_cookies_valid(['_webvpn_key', 'webvpn_username'])
             
-            logger.info("开始 WebVPN 登录...")
-            webvpn_username_value = do_webvpn_login(page, context, url['root'])
-            if not webvpn_username_value:
-                logger.error("WebVPN 登录失败")
-                return None, None
-            logger.info(f"WebVPN 登录成功, webvpn_username: {webvpn_username_value}...")
+            if valid_cookies == True:
+                # Cookie 有效，直接访问主页面
+                logger.info("WebVPN Cookie 有效，跳过登录步骤")
+            else:
+                # Cookie 无效或不存在，进行 WebVPN 登录
+                logger.info(f"正在打开 WebVPN 登录页面: {url['webvpn_username']}")
+                page.goto(url['webvpn_username'])
+                
+                logger.info("开始 WebVPN 登录...")
+                webvpn_username_value = do_webvpn_login(page, context, url['root'])
+                if not webvpn_username_value:
+                    logger.error("WebVPN 登录失败")
+                    return None, None
+                logger.info(f"WebVPN 登录成功")
 
-            # Step 2: 访问主页面
+            # Step 2: 访问主页面（设置较短超时，不等待完全加载）
             logger.info(f"正在打开主页面: {url['root']}")
-            page.goto(url['root'])
-
-            # Step 3: 点击登录按钮
-            if not click_element(page, SELECTORS['ACM_login_buttons']['login_button'], timeout=10000):
+            page.goto(url['root'], timeout=15000)  # 15秒超时
+            
+            # Step 3: 等待登录按钮出现并点击
+            logger.info("等待登录按钮出现...")
+            try:
+                page.wait_for_selector(SELECTORS['login_button'], timeout=20000)
+                logger.info("登录按钮已出现")
+            except Exception as err:
+                error_msg = f"等待登录按钮超时，当前 URL: {page.url}, 错误: {str(err)}"
+                logger.error(error_msg)
+                return None, None
+            
+            if not click_element(page, SELECTORS['login_button'], timeout=10000):
                 logger.error("未找到登录按钮")
                 return None, None
 
             # Step 4: 点击"立即登录"按钮
-            if not click_element(page, SELECTORS['ACM_login_buttons']['login_now_button'], timeout=5000):
+            if not click_element(page, SELECTORS['login_now_button'], timeout=5000):
                 logger.error("未找到'立即登录'按钮")
                 return None, None
             
@@ -133,8 +129,8 @@ def login(url: dict[str, str]) -> tuple[Page | None, Browser | None]:
                 logger.error(error_msg)
                 raise RuntimeError(error_msg)
             
-            # Step 8: 等待并获取必需的登录 Cookie（包括 webvpn_username）
-            required_cookies = ['access_token', 'id_token', 'post-login-redirect-url', 'refresh_token', 'webvpn_username']
+            # Step 8: 等待并获取必需的登录 Cookie
+            required_cookies = ['access_token', 'id_token', 'post-login-redirect-url', 'refresh_token']
             if not wait_for_required_cookies(context, page, url['root'], required_cookies):
                 logger.warning("未能获取所有必需的 Cookie")
             

@@ -1,5 +1,10 @@
 import os
 import re
+from crawler.utils.logging_utils import setup_logging
+from venv import logger
+
+# 配置日志
+logger = setup_logging()
 
 def save_html_to_html(html_content: str, filename: str = "webpage.html") -> None:
     """
@@ -12,7 +17,7 @@ def save_html_to_html(html_content: str, filename: str = "webpage.html") -> None
         # 检查输入是否有效
         if not html_content or not isinstance(html_content, str):
             error_msg: str = "错误: HTML 内容为空或格式不正确"
-            print(error_msg)
+            logger.error(error_msg)
             return
         
         # 清理文件名：移除或替换非法字符
@@ -29,11 +34,11 @@ def save_html_to_html(html_content: str, filename: str = "webpage.html") -> None
         
         # 成功保存 HTML 文件
         success_msg: str = f"HTML 内容已成功保存到: {file_path}"
-        print(success_msg)
+        logger.info(success_msg)
         
     except Exception as err:
         # 处理所有异常
         error_msg: str = f"保存 HTML 文件失败 [{filename}]: {err}"
-        print(error_msg)
+        logger.error(error_msg)
 
     

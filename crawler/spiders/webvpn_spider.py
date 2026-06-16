@@ -1,4 +1,3 @@
-from crawler.spiders.webvpn_spider import SELECTORS
 from crawler.pipelines.cookie_pipeline import save_cookies_to_json
 from crawler.utils.config_utils import get_webvpn_password_from_env, get_webvpn_username_from_env
 from crawler.utils.browser_utils import click_element
@@ -7,7 +6,7 @@ from crawler.utils.selector_utils import load_selectors
 from playwright.sync_api import Page, BrowserContext
 from venv import logger
 
-SELECTORS = load_selectors(form_type='WEBVPN_login_inputs')['WEBVPN_login_inputs']
+SELECTORS = load_selectors(form_type='WEBVPN')
 
 def fill_webvpn_username(page: Page) -> bool:
     """
@@ -21,15 +20,12 @@ def fill_webvpn_username(page: Page) -> bool:
         logger.error("未获取到 WebVPN 用户名配置")
         return False
     
-    # 更新 WebVPN 用户名输入框选择器键名
-    webvpn_username_selector = SELECTORS['webvpn_username_input']
-    
     # 使用 fill_element 函数填入 WebVPN 用户名
-    if not fill_element(page, webvpn_username_selector, user_webvpn_username, timeout=5000):
+    if not fill_element(page, SELECTORS['username_input'], user_webvpn_username, timeout=5000):
         logger.error("未找到 WebVPN 用户名输入框")
         return False
     
-    logger.info(f"已填写 WebVPN 用户名: {user_webvpn_username}")
+    logger.info(f"已填写 WebVPN 用户名")
     return True
 
 def fill_webvpn_password(page: Page) -> bool:
@@ -44,15 +40,12 @@ def fill_webvpn_password(page: Page) -> bool:
         logger.error("未获取到 WebVPN 密码配置")
         return False
     
-    # 更新 WebVPN 密码输入框选择器键名
-    webvpn_password_selector = SELECTORS['webvpn_password_input']
-    
     # 使用 fill_element 函数填入 WebVPN 密码
-    if not fill_element(page, webvpn_password_selector, user_webvpn_password, timeout=5000):
+    if not fill_element(page, SELECTORS['password_input'], user_webvpn_password, timeout=5000):
         logger.error("未找到 WebVPN 密码输入框")
         return False
     
-    logger.info(f"已填写 WebVPN 密码: {user_webvpn_password}")
+    logger.info(f"已填写 WebVPN 密码")
     return True
 
 def click_webvpn_login_button(page: Page, context: BrowserContext, target_url: str) -> str | None:
@@ -60,23 +53,15 @@ def click_webvpn_login_button(page: Page, context: BrowserContext, target_url: s
     在登录页面自动点击 WebVPN 登录按钮，等待重定向后保存并返回 webvpn_username cookie
     
     :param page: Playwright page 对象
-    :param context: Playwright context 对象（用于获取 cookie）
+    :param context: Playwright context 对象(用于获取 cookie)
     :param target_url: 目标重定向 URL
     :return: webvpn_username cookie 值，失败返回 None
     """
-    if not click_element(page, SELECTORS['login_button'], timeout=10000):
+    if not click_element(page, SELECTORS['login_submit'], timeout=10000):
         logger.error("未找到 WebVPN 登录按钮")
         return None
     
-    logger.info("已点击 WebVPN 登录按钮，等待重定向...")
-    
-    # 等待页面重定向到目标 URL
-    try:
-        page.wait_for_url(target_url, timeout=30000)
-        logger.info(f"已成功重定向到: {target_url}")
-    except Exception as err:
-        logger.error(f"等待重定向超时，当前 URL: {page.url}, 错误: {str(err)}")
-        return None
+    logger.info("已点击 WebVPN 登录按钮，等待登录完成...")
     
     # 等待页面完全加载
     page.wait_for_load_state('networkidle')
@@ -105,7 +90,7 @@ def click_webvpn_login_button(page: Page, context: BrowserContext, target_url: s
             webvpn_username_cookie = cookie
             webvpn_username_value = cookie.get('value')
             display_value = webvpn_username_value[:50] if webvpn_username_value else ''
-            logger.info(f"已获取 webvpn_username cookie: {display_value}...")
+            logger.info(f"已获取 webvpn_username cookie")
     
     # 保存所有 cookie
     if cookies_to_save:

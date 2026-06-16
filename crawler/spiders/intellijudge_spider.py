@@ -8,7 +8,7 @@ from playwright.sync_api import Page
 logger = setup_logging()
 
 # 选择器常量
-SELECTORS = load_selectors(form_type='IJ_form_inputs')['IJ_form_inputs']
+SELECTORS = load_selectors(form_type='IJ')
 
 def fill_email(page: Page) -> bool:
     """

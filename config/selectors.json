@@ -1,16 +1,16 @@
 {
-  "ACM_login_buttons": {
+  "ACM": {
     "login_button": "button[data-slot=\"dropdown-menu-trigger\"][data-sidebar=\"menu-button\"]",
     "login_now_button": "a:has-text(\"立即登录\")"
   },
-  "IJ_form_inputs": {
+  "IJ": {
     "email_input": "input[name=\"p_email\"], input[id=\"sign_up_sign_in_credentials_p_email\"]",
     "verification_code_input": "input[name=\"p_confirmation_code\"], input[id=\"otp_code_p_confirmation_code\"]",
     "continue_button": "button[type=\"submit\"][data-kinde-button=\"true\"]"
   },
-  "WEBVPN_login_inputs": {
-    "username_input": "input#username[name=\"username\"]",
-    "password_input": "input#password[name=\"passwordText\"]",
-    "login_submit": "a#login_submit.login-btn"
+  "WEBVPN": {
+    "username_input": "input#username",
+    "password_input": "input#password",
+    "login_submit": "a#login_submit"
   }
 }

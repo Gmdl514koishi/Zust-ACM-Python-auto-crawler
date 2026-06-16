@@ -8,17 +8,44 @@ from typing import Optional, List, Dict, Any
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-def save_cookies_to_json(cookies: List[Dict[str, Any]], filepath: str = 'config/cookies.json') -> bool:
+def save_cookies_to_json(cookies: List[Dict[str, Any]], filepath: str = 'config/cookies.json', merge: bool = True) -> bool:
     """
     将 Cookie 保存为 JSON 格式文件
     
     :param cookies: Cookie 列表（从 Playwright 获取的格式）
     :param filepath: 保存路径，默认为 config/cookies.json
+    :param merge: 是否合并更新(True: 合并现有 Cookie, False: 覆盖)
     :return: 是否保存成功
     """
     try:
         # 确保目录存在
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        
+        if merge and os.path.exists(filepath):
+            # 检查新 Cookie 是否为空
+            if not cookies or len(cookies) == 0:
+                logger.info("新 Cookie 为空，跳过更新")
+                return True
+            
+            # 加载现有的 Cookie
+            existing_cookies = load_cookies_from_json(filepath)
+            if existing_cookies:
+                # 构建现有 Cookie 的字典（按 name 分组）
+                existing_cookies_dict = {}
+                for cookie in existing_cookies:
+                    cookie_name = cookie.get('name')
+                    if cookie_name:
+                        existing_cookies_dict[cookie_name] = cookie
+                
+                # 合并新 Cookie（新的会覆盖旧的同名 Cookie）
+                for new_cookie in cookies:
+                    cookie_name = new_cookie.get('name')
+                    if cookie_name:
+                        existing_cookies_dict[cookie_name] = new_cookie
+                
+                # 转换回列表
+                cookies = list(existing_cookies_dict.values())
+                logger.info(f"已合并 {len(cookies)} 个 Cookie")
         
         # 写入 JSON 文件
         with open(filepath, 'w', encoding='utf-8') as f:
@@ -141,7 +168,7 @@ def clean_expired_cookies(filepath: str = 'config/cookies.json') -> bool:
     
     if removed_count > 0:
         logger.info(f"清理 {removed_count} 个过期 Cookie")
-        return save_cookies_to_json(valid_cookies, filepath)
+        return save_cookies_to_json(valid_cookies, filepath, merge=False)
     
     logger.info("没有过期 Cookie 需要清理")
     return True
