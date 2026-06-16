@@ -8,8 +8,17 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 headers: Dict[str, str] = {
-    "User-Agent": "ZUST-ACM-Crawler/1.0 (+https://github.com/Gmdl514koishi/Zust-ACM-Python-auto-crawler)",
-    "From": "1251004020"
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.3.1 Safari/605.1.15",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1",
+    "From": "ZUST-ACM-Crawler/1.0 (+https://github.com/Gmdl514koishi/Zust-ACM-Python-auto-crawler)"
 }
 
 def cookies_to_dict(cookies: Optional[List[Dict[str, Any]]]) -> RequestsCookieJar:
@@ -72,9 +81,14 @@ def fetch_webpage(url: str, cookies: Optional[List[Dict[str, Any]]] = None) -> s
         response.raise_for_status()
         html: str = response.text
         
+        # 检查响应中的 Set-Cookie
+        if 'set-cookie' in response.headers:
+            logger.debug(f"响应中设置了新的 Cookie: {response.headers['set-cookie']}")
+        
         if cookies:
             logger.info(f"已携带 {len(cookies)} 个 Cookie 访问 {url}")
             logger.debug(f"重定向后的 URL: {response.url}")
+            logger.debug(f"响应状态码: {response.status_code}")
         
         return html
     except requests.exceptions.RequestException as err:

@@ -8,7 +8,7 @@ from playwright.sync_api import Page
 logger = setup_logging()
 
 # 选择器常量
-SELECTORS = load_selectors()
+SELECTORS = load_selectors(form_type='IJ_form_inputs')
 
 def fill_email(page: Page) -> bool:
     """
@@ -22,13 +22,16 @@ def fill_email(page: Page) -> bool:
         logger.error("未获取到邮箱配置")
         return False
 
+    # 更新邮箱输入框选择器键名
+    email_selector = SELECTORS['IJ_form_inputs']['email_input']
+    
     # 使用 fill_element 函数填入邮箱
-    if not fill_element(page, SELECTORS['email_input'], user_email, timeout=5000):
+    if not fill_element(page, email_selector, user_email, timeout=5000):
         logger.error("未找到邮箱输入框")
         return False
     
     # 点击 Continue 按钮
-    if not click_element(page, SELECTORS['continue_button'], timeout=5000):
+    if not click_element(page, SELECTORS['IJ_form_buttons']['continue_button'], timeout=5000):
         logger.error("未找到 Continue 按钮")
         return False
     
@@ -55,15 +58,15 @@ def fill_verification_code(page: Page) -> bool:
         logger.error("验证码必须为6位数字")
         return False
     
-    # 填入验证码
-    if not fill_element(page, SELECTORS['verification_code_input'], code, timeout=5000):
+    # 使用 fill_element 函数填入验证码
+    if not fill_element(page, SELECTORS['IJ_form_inputs']['verification_code_input'], code, timeout=5000):
         logger.error("未找到验证码输入框")
         return False
     
     # 点击 Continue 按钮
-    if not click_element(page, SELECTORS['continue_button'], timeout=5000):
+    if not click_element(page, SELECTORS['IJ_form_buttons']['continue_button'], timeout=5000):
         logger.error("未找到 Continue 按钮")
         return False
-    
+
     logger.info(f"已提交验证码")
     return True

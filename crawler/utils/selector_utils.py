@@ -1,10 +1,11 @@
 import json
 import os
 
-def load_selectors(filepath: str = 'config/selectors.json') -> dict:
+def load_selectors(form_type: str, filepath: str = 'config/selectors.json') -> dict:
     """
     从 JSON 文件加载选择器配置
     
+    :param form_type: 表单类型
     :param filepath: 配置文件路径
     :return: 选择器字典
     """
@@ -15,7 +16,12 @@ def load_selectors(filepath: str = 'config/selectors.json') -> dict:
         with open(filepath, 'r', encoding='utf-8') as f:
             selectors = json.load(f)
         
-        print(f"已加载 {len(selectors)} 个选择器配置")
+        if form_type not in selectors:
+            raise ValueError(f"表单类型 {form_type} 不存在于选择器配置中")
+        
+        selectors = selectors[form_type]
+        
+        print(f"已加载 {len(selectors)} 个选择器配置，表单类型: {form_type}")
         return selectors
     
     except Exception as err:
