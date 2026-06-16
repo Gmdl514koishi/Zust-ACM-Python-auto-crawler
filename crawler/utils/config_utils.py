@@ -35,3 +35,25 @@ def get_student_password_from_env() -> str:
     if not student_password:
         raise EOFError("未配置学生密码") # 后续添加写入学生密码函数
     return student_password
+
+def get_webvpn_password_from_env() -> str:
+    """
+    从 .env 中读取 WebVPN 密码配置
+
+    :return: WebVPN 密码
+    """
+    webvpn_password = os.getenv('WEBVPN_PASSWORD')
+    if not webvpn_password:
+        raise EOFError("未配置 WebVPN 密码") # 后续添加写入 WebVPN 密码函数
+    return webvpn_password
+
+def get_webvpn_username_from_env() -> str:
+    """
+    从 .env 中读取 WebVPN 用户名配置
+
+    :return: WebVPN 用户名
+    """
+    webvpn_username = os.getenv('WEBVPN_USERNAME')
+    if not webvpn_username:
+        raise EOFError("未配置 WebVPN 用户名") # 后续添加写入 WebVPN 用户名函数
+    return webvpn_username

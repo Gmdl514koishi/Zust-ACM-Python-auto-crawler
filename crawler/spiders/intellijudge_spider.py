@@ -1,5 +1,5 @@
+from crawler.utils.browser_utils import click_element, fill_element
 from crawler.utils.config_utils import get_email_from_env
-from crawler.utils.intellijudge_utils import click_element, fill_element
 from crawler.utils.logging_utils import setup_logging
 from crawler.utils.selector_utils import load_selectors
 from playwright.sync_api import Page
@@ -8,7 +8,7 @@ from playwright.sync_api import Page
 logger = setup_logging()
 
 # 选择器常量
-SELECTORS = load_selectors(form_type='IJ_form_inputs')
+SELECTORS = load_selectors(form_type='IJ_form_inputs')['IJ_form_inputs']
 
 def fill_email(page: Page) -> bool:
     """
@@ -23,7 +23,7 @@ def fill_email(page: Page) -> bool:
         return False
 
     # 更新邮箱输入框选择器键名
-    email_selector = SELECTORS['IJ_form_inputs']['email_input']
+    email_selector = SELECTORS['email_input']
     
     # 使用 fill_element 函数填入邮箱
     if not fill_element(page, email_selector, user_email, timeout=5000):
@@ -31,7 +31,7 @@ def fill_email(page: Page) -> bool:
         return False
     
     # 点击 Continue 按钮
-    if not click_element(page, SELECTORS['IJ_form_buttons']['continue_button'], timeout=5000):
+    if not click_element(page, SELECTORS['continue_button'], timeout=5000):
         logger.error("未找到 Continue 按钮")
         return False
     
@@ -58,15 +58,31 @@ def fill_verification_code(page: Page) -> bool:
         logger.error("验证码必须为6位数字")
         return False
     
+    # 更新验证码输入框选择器键名
+    verification_code_selector = SELECTORS['verification_code_input']
+    
     # 使用 fill_element 函数填入验证码
-    if not fill_element(page, SELECTORS['IJ_form_inputs']['verification_code_input'], code, timeout=5000):
+    if not fill_element(page, verification_code_selector, code, timeout=5000):
         logger.error("未找到验证码输入框")
         return False
     
     # 点击 Continue 按钮
-    if not click_element(page, SELECTORS['IJ_form_buttons']['continue_button'], timeout=5000):
+    if not click_element(page, SELECTORS['continue_button'], timeout=5000):
         logger.error("未找到 Continue 按钮")
         return False
 
     logger.info(f"已提交验证码")
+    return True
+
+def do_intellijudge_login(page: Page) -> bool:
+    """
+    登录 Intellijudge 并填写验证码
+    
+    :param page: Playwright page 对象
+    :return: 是否成功登录
+    """
+    if not fill_email(page):
+        return False
+    if not fill_verification_code(page):
+        return False
     return True
